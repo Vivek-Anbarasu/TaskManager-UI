@@ -1,0 +1,173 @@
+/* Professional dashboard styles */
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --muted:#6c757d;
+  --primary:#0d6efd;
+  --success:#198754;
+  --danger:#dc3545;
+  --border:#e6e9ef;
+  --radius:10px;
+  --max-width:1000px;
+}
+
+.body-reset{margin:0}
+body{margin:0;height:100vh;background:var(--bg);}
+
+/* Full-window layout: make the dashboard occupy the entire viewport */
+.dashboard-container{
+  min-height:100vh;
+  display:flex;
+  align-items:stretch;
+  justify-content:flex-start;
+  padding:0;
+}
+
+.dashboard-card{
+  width:100%;
+  max-width:none;
+  height:100vh;
+  background:var(--card);
+  border-radius:0;
+  box-shadow:none;
+  padding:28px 36px;
+  box-sizing:border-box;
+  border-left:1px solid var(--border);
+  overflow:auto;
+}
+
+.dashboard-header{
+  display:flex;
+  align-items:left;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:20px;
+}
+
+.dashboard-title{
+  margin:0;
+  font-size:20px;
+  color:#0b2340;
+}
+
+/* Logo for dashboard header */
+.dashboard-logo{height:40px;width:auto;display:block}
+
+/* Action buttons in table rows */
+.action-buttons{display:flex;gap:8px}
+
+/* Sortable table headers */
+.sortable-header{cursor:pointer}
+
+/* Form group spacing */
+.form-group{margin-top:12px}
+
+/* Textarea specific styling */
+.textarea-description{height:88px}
+
+/* Form action buttons container */
+.form-actions{margin-top:12px;display:flex;gap:10px}
+
+/* User controls in header */
+.user-controls{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+
+/* Welcome message text */
+.welcome-text{font-size:14px;color:var(--muted)}
+
+.user-info{color:var(--muted);font-size:14px}
+
+.controls{display:flex;gap:10px;align-items:center}
+
+.form-row{display:flex;gap:12px;flex-wrap:wrap}
+.form-col{flex:1;min-width:200px}
+
+.field-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;text-align:left}
+.input, textarea, select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:transparent;box-sizing:border-box}
+textarea{resize:vertical}
+
+.btn{background:var(--primary);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn.secondary{background:#6c757d}
+.btn.danger{background:var(--danger)}
+.btn.transparent{background:transparent;border:1px solid var(--border);color:var(--muted)}
+
+.divider{height:1px;background:var(--border);margin:18px 0;border-radius:2px}
+
+.task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.task-card{background:linear-gradient(180deg, #fff, #fbfdff);padding:14px;border-radius:10px;border:1px solid var(--border);box-shadow:0 4px 12px rgba(11,35,64,0.03)}
+.task-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.task-title{font-weight:700;color:#07203a}
+.task-desc{margin:8px 0;color:#344054;font-size:14px}
+.badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#1e3a8a}
+.actions{display:flex;gap:8px}
+
+/* Table styles for task listing */
+.table-responsive{overflow:auto}
+.task-table{width:100%;border-collapse:collapse;font-size:14px}
+.task-table thead th{background:#f3f4f6;text-align:left;padding:12px;border-bottom:1px solid rgba(11,35,64,0.06);color:#0b2340;font-weight:700}
+.task-table tbody td{padding:12px;border-bottom:1px solid rgba(15,23,36,0.06);vertical-align:top;color:#1f2937;background:transparent}
+.task-table tbody tr{background:transparent}
+.task-table tbody tr:hover{background:linear-gradient(90deg, rgba(2,6,23,0.02), rgba(11,42,70,0.02))}
+.task-table .task-title{font-weight:700;color:#062133}
+.task-table .task-desc{color:#334155}
+.task-table .badge{display:inline-block}
+.task-table .actions{gap:6px}
+.task-table .btn{padding:6px 10px;font-size:13px;border-radius:6px}
+.task-table .btn.transparent{border:1px solid var(--border);background:transparent;color:var(--muted)}
+.task-table .btn.danger{background:var(--danger)}
+
+/* Pagination styles */
+.pagination{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.pagination-info{color:var(--muted);font-size:13px;margin-right:auto}
+.page-btn{background:transparent;border:1px solid var(--border);padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--muted)}
+.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.page-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* scroll area limit */
+/* increased from 55vh to 72vh to give the table 30% more vertical space */
+.table-responsive{max-height:72vh;overflow:auto}
+
+/* Icon button for row actions */
+.icon-btn{background:transparent;border:1px solid transparent;padding:6px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn svg{display:block}
+
+.column-search{width:60%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px}
+.sort-icon{margin-left:6px;color:var(--muted);font-size:12px}
+
+/* Theme tweaks: modern/light professional */
+.task-table{background:transparent}
+.task-table thead th{letter-spacing:0.2px}
+.task-table tbody td{background:transparent}
+
+/* Status badge variants */
+.badge{font-size:12px;padding:6px 10px;border-radius:999px;color:#fff;display:inline-block}
+.badge.todo{background:#0d6efd}
+.badge.inprogress{background:#f59e0b}
+.badge.done{background:#16a34a}
+
+/* Pagination theme */
+.page-btn{background:#fff;border:1px solid rgba(2,6,23,0.06);padding:6px 10px;border-radius:6px;cursor:pointer;color:#0b2340}
+.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.page-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* Column filter input darkened */
+.column-search{background:#ffffff;border:1px solid rgba(2,6,23,0.06)}
+
+/* Page-size selector */
+.page-size-label{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:13px;color:#475569}
+.page-size-select{padding:6px 8px;border-radius:6px;border:1px solid rgba(2,6,23,0.06);background:#fff}
+
+/* Form width: make the form occupy 50% of the card */
+.task-form{width:30%;min-width:320px;margin:0 auto 18px auto}
+@media (max-width:900px){.task-form{width:100%;margin:0 0 12px 0}}
+
+/* Two-column layout: form left, table right */
+.main-content{display:flex;gap:24px;align-items:flex-start}
+.table-area{flex:1;min-width:320px}
+.task-form{margin:0}
+
+/* Light header theme */
+.theme-toggle{margin-right:8px}
+
+.empty{color:var(--muted);padding:14px;text-align:center}
+
+@media (max-width:600px){.dashboard-card{padding:16px}.dashboard-header{flex-direction:column;align-items:flex-start;gap:8px}}
