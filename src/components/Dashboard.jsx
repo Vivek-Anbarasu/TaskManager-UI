@@ -111,7 +111,7 @@ const Dashboard = () => {
 
   const fetchTasks = async () => {
     try {
-      const res = await axios.get(`${API_CONFIG.V1_BASE()}/getAllTasks`, { headers: authHeader() });
+      const res = await axios.get(`${API_CONFIG.TASK_BASE()}/`, { headers: authHeader() });
       setTasks(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch tasks', err);
@@ -139,7 +139,7 @@ const Dashboard = () => {
       (async () => {
         try {
           const payload = { id: editingId, title, description, status };
-          await axios.put(`${API_CONFIG.V1_BASE()}/updateTask`, payload, { headers: authHeader() });
+          await axios.put(`${API_CONFIG.TASK_BASE()}/`, payload, { headers: authHeader() });
           toast.success('Task updated');
           await fetchTasks();
         } catch (err) {
@@ -152,7 +152,7 @@ const Dashboard = () => {
       (async () => {
         try {
           const payload = { title, description, status };
-          await axios.post(`${API_CONFIG.V1_BASE()}/saveTask`, payload, { headers: authHeader() });
+          await axios.post(`${API_CONFIG.TASK_BASE()}/`, payload, { headers: authHeader() });
           toast.success('Task created');
           await fetchTasks();
         } catch (err) {
@@ -180,7 +180,7 @@ const Dashboard = () => {
           label: 'Yes',
           onClick: async () => {
             try {
-              await axios.delete(`${API_CONFIG.V1_BASE()}/deleteTask/${id}`, { headers: authHeader() });
+              await axios.delete(`${API_CONFIG.TASK_BASE()}/${id}`, { headers: authHeader() });
               toast.success('Task deleted');
               await fetchTasks();
             } catch (err) {
