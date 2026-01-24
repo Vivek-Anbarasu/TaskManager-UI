@@ -52,7 +52,7 @@ describe('Dashboard Component', () => {
     
     await waitFor(() => {
       expect(axios.get).toHaveBeenCalledWith(
-        'http://localhost:8080/v1/getAllTasks',
+        'http://localhost:8080/task/',
         { headers: { Authorization: 'Bearer test-token' } }
       );
     });
@@ -121,7 +121,7 @@ describe('Dashboard Component', () => {
     
     await waitFor(() => {
       expect(axios.post).toHaveBeenCalledWith(
-        'http://localhost:8080/v1/saveTask',
+        'http://localhost:8080/task/',
         { title: 'New Task', description: 'New Description', status: 'To Do' },
         { headers: { Authorization: 'Bearer test-token' } }
       );
@@ -198,7 +198,7 @@ describe('Dashboard Component', () => {
     
     await waitFor(() => {
       expect(axios.put).toHaveBeenCalledWith(
-        'http://localhost:8080/v1/updateTask',
+        'http://localhost:8080/task/',
         { id: 1, title: 'Updated Task', description: 'Updated Description', status: 'To Do' },
         { headers: { Authorization: 'Bearer test-token' } }
       );
@@ -232,7 +232,7 @@ describe('Dashboard Component', () => {
     await waitFor(() => {
       expect(confirmAlert).toHaveBeenCalled();
       expect(axios.delete).toHaveBeenCalledWith(
-        'http://localhost:8080/v1/deleteTask/1',
+        'http://localhost:8080/task/1',
         { headers: { Authorization: 'Bearer test-token' } }
       );
       expect(toast.success).toHaveBeenCalledWith('Task deleted');
