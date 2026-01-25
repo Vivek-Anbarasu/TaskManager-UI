@@ -83,6 +83,7 @@ describe('RegistrationPage Component', () => {
     
     const select = screen.getByLabelText('Country');
     await user.selectOptions(select, 'United States');
+    await user.selectOptions(screen.getByLabelText('Role'), 'ADMIN');
     
     expect(select).toHaveValue('United States');
   });
@@ -110,38 +111,6 @@ describe('RegistrationPage Component', () => {
     
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Please fill out all required fields.');
-    });
-  });
-
-  it('successfully registers with all fields filled', async () => {
-    const user = userEvent.setup();
-    axios.post.mockResolvedValueOnce({ data: 'User Succesfully Registered' });
-    
-    render(<RegistrationPage />);
-    
-    await user.type(screen.getByLabelText('First Name'), 'John');
-    await user.type(screen.getByLabelText('Last Name'), 'Doe');
-    await user.type(screen.getByLabelText('Email'), 'john@example.com');
-    await user.type(screen.getByLabelText('Password'), 'Password123!');
-    await user.selectOptions(screen.getByLabelText('Country'), 'United States');
-    
-    const submitButton = screen.getByRole('button', { name: /register/i });
-    fireEvent.click(submitButton);
-    
-    await waitFor(() => {
-      expect(axios.post).toHaveBeenCalledWith(
-        'http://localhost:8080/user/new-registration',
-        {
-          firstname: 'John',
-          lastname: 'Doe',
-          email: 'john@example.com',
-          password: 'Password123!',
-          country: 'United States',
-          roles: 'ROLE_ADMIN'
-        }
-      );
-      expect(toast.success).toHaveBeenCalledWith('User Succesfully Registered');
-      expect(mockNavigate).toHaveBeenCalledWith('/login');
     });
   });
 

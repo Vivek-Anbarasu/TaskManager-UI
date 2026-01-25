@@ -14,6 +14,7 @@ const RegistrationPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [country, setCountry] = useState('');
+  const [role, setRole] = useState('ADMIN');
 
   const calculatePasswordStrength = (pwd) => {
     if (!pwd) return { score: 0, label: 'Too short', color: '#e0e0e0' };
@@ -49,7 +50,7 @@ const RegistrationPage = () => {
         email: email,
         password: password,
         country: country,
-        roles: 'ROLE_ADMIN'
+        roles: role
       });
 
       if (response && response.data === 'User Succesfully Registered') {
@@ -152,6 +153,18 @@ const RegistrationPage = () => {
           <option value="United Kingdom">United Kingdom</option>
           <option value="India">India</option>
           <option value="Other">Other</option>
+        </select>
+
+        <label htmlFor="role" className="register-label">Role</label>
+        <select
+          className="register-input"
+          id="role"
+          name="role"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        >
+          <option value="USER">USER</option>
+          <option value="ADMIN">ADMIN</option>
         </select>
 
 
