@@ -50,7 +50,7 @@ const RegistrationPage = () => {
         email: email,
         password: password,
         country: country,
-        roles: role
+        role: role
       });
 
       if (response && response.data === 'User Succesfully Registered') {
