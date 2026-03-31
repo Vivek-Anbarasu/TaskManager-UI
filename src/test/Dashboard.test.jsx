@@ -973,4 +973,120 @@ describe('Dashboard Component', () => {
     const sendBtn = screen.getByRole('button', { name: /send/i });
     expect(sendBtn).toBeDisabled();
   });
+
+  // ----- AI Import Document tests -----
+
+  it('renders the "Import Document" button', async () => {
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /import document/i })).toBeInTheDocument();
+    });
+  });
+
+  it('opens import modal when "Import Document" button is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /import document/i }));
+
+    expect(screen.getByRole('dialog', { name: /import document/i })).toBeInTheDocument();
+    expect(screen.getByText('Import Tasks from Document')).toBeInTheDocument();
+  });
+
+  it('closes import modal when Cancel is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /import document/i }));
+    expect(screen.getByRole('dialog', { name: /import document/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.queryByRole('dialog', { name: /import document/i })).not.toBeInTheDocument();
+  });
+
+  it('uploads file and shows success message', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: { message: 'Successfully imported 3 tasks from document', taskIds: [1, 2, 3] } });
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /import document/i }));
+
+    const fileInput = screen.getByLabelText(/choose document file/i);
+    const file = new File(['dummy content'], 'sprint-plan.pdf', { type: 'application/pdf' });
+    await user.upload(fileInput, file);
+
+    await user.click(screen.getByRole('button', { name: /^import$/i }));
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://localhost:8080/ai/task/import-document',
+        expect.any(FormData),
+        { headers: { Authorization: 'Bearer test-token', 'Content-Type': 'multipart/form-data' } }
+      );
+      expect(screen.getByText('Successfully imported 3 tasks from document')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when import API fails', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockRejectedValueOnce(new Error('Server error'));
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /import document/i }));
+
+    const fileInput = screen.getByLabelText(/choose document file/i);
+    const file = new File(['dummy'], 'notes.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    await user.upload(fileInput, file);
+
+    await user.click(screen.getByRole('button', { name: /^import$/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to import document. Please try again.');
+    });
+  });
+
+  it('disables Import button when no file is selected', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /import document/i }));
+
+    const importBtn = screen.getByRole('button', { name: /^import$/i });
+    expect(importBtn).toBeDisabled();
+  });
 });

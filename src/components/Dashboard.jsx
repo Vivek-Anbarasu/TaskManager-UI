@@ -45,6 +45,10 @@ const Dashboard = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatting, setIsChatting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [columnFilters, setColumnFilters] = useState([]);
   const [sorting, setSorting] = useState([]);
@@ -192,6 +196,31 @@ const Dashboard = () => {
       setChatMessages((prev) => [...prev, { role: 'ai', text: 'Sorry, I could not process your question. Please try again.' }]);
     } finally {
       setIsChatting(false);
+    }
+  };
+
+  const importDocument = async () => {
+    if (!importFile) {
+      toast.error('Please select a file to import.');
+      return;
+    }
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      const res = await axios.post(
+        `${API_CONFIG.AI_BASE()}/import-document`,
+        formData,
+        { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' } }
+      );
+      setImportResult(res.data);
+      await fetchTasks();
+    } catch (err) {
+      console.error('Document import failed', err);
+      toast.error('Failed to import document. Please try again.');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -463,6 +492,15 @@ const Dashboard = () => {
             <div className="table-toolbar">
               <button
                 type="button"
+                className="btn ai-import-btn"
+                onClick={() => { setShowImportModal(true); setImportFile(null); setImportResult(null); }}
+                title="Import tasks from a PDF or Word document"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="#fff"/><path d="M4 20h16v-4h-2v2H6v-2H4v4z" fill="#fff"/></svg>
+                Import Document
+              </button>
+              <button
+                type="button"
                 className="btn ai-chat-btn"
                 onClick={() => setShowChat(true)}
                 title="Ask AI about your tasks"
@@ -574,6 +612,60 @@ const Dashboard = () => {
       </div>
     </div>
     </div>
+
+      {showImportModal && (
+        <div className="chat-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowImportModal(false); } }}>
+          <div className="chat-modal import-modal" role="dialog" aria-label="Import Document">
+            <div className="chat-modal-header import-modal-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="#b45309"/><path d="M4 20h16v-4h-2v2H6v-2H4v4z" fill="#b45309"/></svg>
+              <span>Import Tasks from Document</span>
+              <button className="summary-close-btn" onClick={() => setShowImportModal(false)} title="Close">✕</button>
+            </div>
+            <div className="import-modal-body">
+              <p className="import-hint">Upload a PDF, Word, or Excel document (.pdf, .doc, .docx, .xlsx, .xls). The AI will extract tasks and save them automatically.</p>
+              <label className="import-drop-zone" htmlFor="import-file-input">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="#b45309" strokeWidth="1.5" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 12v6M9 15l3-3 3 3" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span className="import-drop-label">
+                  {importFile ? importFile.name : 'Click to choose a file'}
+                </span>
+                <span className="import-drop-sub">PDF, DOC, DOCX, XLSX, XLS supported</span>
+                <input
+                  id="import-file-input"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xlsx,.xls"
+                  className="import-file-input"
+                  onChange={(e) => { setImportFile(e.target.files[0] || null); setImportResult(null); }}
+                  aria-label="Choose document file"
+                />
+              </label>
+
+              {importResult && (
+                <div className="import-result">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11l3 3L22 4" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="#16a34a" strokeWidth="2" strokeLinecap="round"/></svg>
+                  <span>{importResult.message}</span>
+                </div>
+              )}
+            </div>
+            <div className="import-modal-footer">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setShowImportModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn ai-import-submit-btn"
+                onClick={importDocument}
+                disabled={isImporting || !importFile}
+              >
+                {isImporting ? <><span className="ai-spinner" /> Importing…</> : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showChat && (
         <div className="chat-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowChat(false); }}>
