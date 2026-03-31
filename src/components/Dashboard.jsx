@@ -39,6 +39,8 @@ const Dashboard = () => {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summary, setSummary] = useState('');
   const [showSummary, setShowSummary] = useState(false);
+  const [isBreakingDown, setIsBreakingDown] = useState(false);
+  const [breakdown, setBreakdown] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [columnFilters, setColumnFilters] = useState([]);
   const [sorting, setSorting] = useState([]);
@@ -145,6 +147,28 @@ const Dashboard = () => {
     }
   };
 
+  const breakdownTask = async () => {
+    if (!title.trim() || !description.trim()) {
+      toast.error('Please enter a title and description first.');
+      return;
+    }
+    setIsBreakingDown(true);
+    setBreakdown('');
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.AI_BASE()}/breakdown`,
+        { title, description },
+        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
+      );
+      setBreakdown(res.data);
+    } catch (err) {
+      console.error('AI breakdown failed', err);
+      toast.error('Failed to break down task. Please try again.');
+    } finally {
+      setIsBreakingDown(false);
+    }
+  };
+
   const summarizeTasks = async () => {
     if (showSummary) {
       setShowSummary(false);
@@ -221,6 +245,7 @@ const Dashboard = () => {
     setDescription('');
     setStatus(STATUS_OPTIONS[0]);
     setEditingId(null);
+    setBreakdown('');
   };
 
   const handleAddOrUpdate = (e) => {
@@ -367,6 +392,38 @@ const Dashboard = () => {
             </div>
             <textarea className="input textarea-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
+
+          <div className="form-group">
+            <button
+              type="button"
+              className="btn ai-breakdown-btn"
+              onClick={breakdownTask}
+              disabled={isBreakingDown}
+              title="Break this task into actionable subtasks using AI"
+            >
+              {isBreakingDown ? (
+                <span className="ai-spinner" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#fff" strokeWidth="2"/><path d="M9 12h6M9 16h4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+              )}
+              {isBreakingDown ? 'Breaking down…' : 'Break Down Task'}
+            </button>
+          </div>
+
+          {breakdown && (
+            <div className="ai-breakdown-panel">
+              <div className="ai-breakdown-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="#059669" strokeWidth="2" strokeLinecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#059669" strokeWidth="2"/><path d="M9 12h6M9 16h4" stroke="#059669" strokeWidth="2" strokeLinecap="round"/></svg>
+                <span>AI Task Breakdown</span>
+                <button className="summary-close-btn" onClick={() => setBreakdown('')} title="Close">✕</button>
+              </div>
+              <div className="ai-breakdown-body">
+                {breakdown.split('\n').map((line, i) => (
+                  line.trim() ? <p key={i} className="breakdown-line">{line}</p> : null
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="form-actions">
             <button type="submit" className="btn">{editingId ? 'Update Task' : 'Create Task'}</button>

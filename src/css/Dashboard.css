@@ -256,3 +256,43 @@ textarea{resize:vertical}
 .summary-close-btn:hover{background:#e5e7eb}
 .ai-summary-body{display:flex;flex-direction:column;gap:6px}
 .summary-line{margin:0;font-size:13px;color:#374151;line-height:1.6;text-align:left}
+
+/* AI Task Breakdown */
+.ai-breakdown-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  padding:6px 12px;
+  border-radius:8px;
+  background:linear-gradient(135deg,#059669,#0d9488);
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  width:100%;
+  justify-content:center;
+  transition:opacity .2s,transform .1s;
+}
+.ai-breakdown-btn:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.ai-breakdown-btn:disabled{opacity:.6;cursor:not-allowed}
+
+.ai-breakdown-panel{
+  background:linear-gradient(135deg,#f0fdf4,#ecfdf5);
+  border:1px solid #a7f3d0;
+  border-radius:10px;
+  padding:16px;
+  margin-top:12px;
+}
+.ai-breakdown-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:700;
+  font-size:14px;
+  color:#065f46;
+  margin-bottom:12px;
+}
+.ai-breakdown-header span{flex:1}
+.ai-breakdown-body{display:flex;flex-direction:column;gap:6px}
+.breakdown-line{margin:0;font-size:13px;color:#374151;line-height:1.6;text-align:left}

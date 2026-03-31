@@ -723,4 +723,139 @@ describe('Dashboard Component', () => {
 
     expect(screen.queryByText('AI Executive Summary')).not.toBeInTheDocument();
   });
+
+  // ----- AI Break Down Task tests -----
+
+  it('renders the "Break Down Task" button', async () => {
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /break down task/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when breakdown clicked without title or description', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /break down task/i }));
+
+    expect(toast.error).toHaveBeenCalledWith('Please enter a title and description first.');
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it('calls breakdown API and shows subtasks panel', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: '1. Write unit tests.\n2. Implement the service layer.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    await user.type(titleInput, 'Complex Task');
+    await user.type(descriptionInput, 'A very complex task description.');
+
+    await user.click(screen.getByRole('button', { name: /break down task/i }));
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://localhost:8080/ai/task/breakdown',
+        { title: 'Complex Task', description: 'A very complex task description.' },
+        { headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' } }
+      );
+      expect(screen.getByText('AI Task Breakdown')).toBeInTheDocument();
+      expect(screen.getByText('1. Write unit tests.')).toBeInTheDocument();
+      expect(screen.getByText('2. Implement the service layer.')).toBeInTheDocument();
+    });
+  });
+
+  it('closes breakdown panel when × button is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: '1. Subtask one.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    await user.type(titleInput, 'Task');
+    await user.type(descriptionInput, 'Description');
+
+    await user.click(screen.getByRole('button', { name: /break down task/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('AI Task Breakdown')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTitle('Close'));
+
+    expect(screen.queryByText('AI Task Breakdown')).not.toBeInTheDocument();
+  });
+
+  it('clears breakdown panel when Reset is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: '1. Subtask one.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    await user.type(titleInput, 'Task');
+    await user.type(descriptionInput, 'Description');
+
+    await user.click(screen.getByRole('button', { name: /break down task/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('AI Task Breakdown')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /reset/i }));
+
+    expect(screen.queryByText('AI Task Breakdown')).not.toBeInTheDocument();
+  });
+
+  it('shows error toast when breakdown API fails', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockRejectedValueOnce(new Error('AI unavailable'));
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    await user.type(titleInput, 'Task');
+    await user.type(descriptionInput, 'Description');
+
+    await user.click(screen.getByRole('button', { name: /break down task/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to break down task. Please try again.');
+    });
+  });
 });
