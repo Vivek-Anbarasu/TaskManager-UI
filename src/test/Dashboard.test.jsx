@@ -858,4 +858,119 @@ describe('Dashboard Component', () => {
       expect(toast.error).toHaveBeenCalledWith('Failed to break down task. Please try again.');
     });
   });
+
+  // ----- AI Chat tests -----
+
+  it('renders the "AI Chat" button', async () => {
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /ai chat/i })).toBeInTheDocument();
+    });
+  });
+
+  it('opens chat modal when "AI Chat" button is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ai chat/i }));
+
+    expect(screen.getByRole('dialog', { name: /ai task chat/i })).toBeInTheDocument();
+    expect(screen.getByText('AI Task Assistant')).toBeInTheDocument();
+  });
+
+  it('closes chat modal when × button is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ai chat/i }));
+    expect(screen.getByRole('dialog', { name: /ai task chat/i })).toBeInTheDocument();
+
+    await user.click(screen.getByTitle('Close'));
+
+    expect(screen.queryByRole('dialog', { name: /ai task chat/i })).not.toBeInTheDocument();
+  });
+
+  it('sends message to chat API and displays reply', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: { reply: 'You have 3 tasks in progress.', tasksAnalyzed: 5 } });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ai chat/i }));
+
+    const chatInput = screen.getByRole('textbox', { name: /chat input/i });
+    await user.type(chatInput, 'How many tasks are in progress?');
+
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://localhost:8080/ai/task/chat',
+        { message: 'How many tasks are in progress?' },
+        { headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' } }
+      );
+      expect(screen.getByText('How many tasks are in progress?')).toBeInTheDocument();
+      expect(screen.getByText('You have 3 tasks in progress.')).toBeInTheDocument();
+      expect(screen.getByText('5 tasks analysed')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error reply in chat when API fails', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockRejectedValueOnce(new Error('AI unavailable'));
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ai chat/i }));
+
+    const chatInput = screen.getByRole('textbox', { name: /chat input/i });
+    await user.type(chatInput, 'What should I focus on?');
+
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Sorry, I could not process your question. Please try again.')).toBeInTheDocument();
+    });
+  });
+
+  it('disables Send button when chat input is empty', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /ai chat/i }));
+
+    const sendBtn = screen.getByRole('button', { name: /send/i });
+    expect(sendBtn).toBeDisabled();
+  });
 });
