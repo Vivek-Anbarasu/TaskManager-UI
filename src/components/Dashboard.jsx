@@ -4,6 +4,7 @@ import '../css/Dashboard.css';
 import logo from '../assets/task-manager-logo.svg';
 import { toast } from 'react-toastify';
 import API_CONFIG from '../config/api';
+import { initRefreshOnLoad, cancelRefreshTimer } from '../config/tokenManager';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
 import axios from 'axios';
@@ -16,7 +17,14 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 
-const STATUS_OPTIONS = ['To Do', 'In Progress', 'Done'];
+const STATUS_OPTIONS = ['To Do', 'In Progress', 'Done', 'Blocked'];
+
+const AI_STATUS_MAP = {
+  TODO: 'To Do',
+  IN_PROGRESS: 'In Progress',
+  DONE: 'Done',
+  BLOCKED: 'Blocked',
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -26,6 +34,8 @@ const Dashboard = () => {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState(STATUS_OPTIONS[0]);
   const [editingId, setEditingId] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSuggestingStatus, setIsSuggestingStatus] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [columnFilters, setColumnFilters] = useState([]);
   const [sorting, setSorting] = useState([]);
@@ -54,7 +64,17 @@ const Dashboard = () => {
     {
       accessorKey: 'description',
       header: 'Description',
-      cell: (info) => info.getValue(),
+      cell: (info) => {
+        const value = info.getValue() || '';
+        const parts = value.split(/(Acceptance Criteria:)/);
+        return (
+          <span>
+            {parts.map((part, i) =>
+              part === 'Acceptance Criteria:' ? <><br key={i} /><strong>{part}</strong></> : part
+            )}
+          </span>
+        );
+      },
       enableSorting: true,
       enableColumnFilter: true,
     },
@@ -64,7 +84,7 @@ const Dashboard = () => {
       cell: (info) => {
         const v = info.getValue() || '';
         const lc = v.toString().toLowerCase();
-        const cls = lc.includes('done') ? 'done' : lc.includes('progress') ? 'inprogress' : 'todo';
+        const cls = lc.includes('done') ? 'done' : lc.includes('progress') ? 'inprogress' : lc.includes('blocked') ? 'blocked' : 'todo';
         return <span className={`badge ${cls}`}>{v}</span>;
       },
       enableSorting: true,
@@ -106,6 +126,7 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
+    initRefreshOnLoad();
     fetchTasks();
   }, [navigate]);
 
@@ -116,7 +137,58 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Failed to fetch tasks', err);
       if (err.response && err.response.status === 401) navigate('/login');
+      else if (err.response && err.response.status === 404) setTasks([]);
       else toast.error('Failed to load tasks');
+    }
+  };
+
+  const suggestStatus = async () => {
+    if (!title.trim() || !description.trim()) {
+      toast.error('Please enter a title and description first.');
+      return;
+    }
+    setIsSuggestingStatus(true);
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.AI_BASE()}/suggest-status`,
+        { title, description },
+        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
+      );
+      const parsed = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+      const mappedStatus = AI_STATUS_MAP[parsed.status];
+      if (mappedStatus) {
+        setStatus(mappedStatus);
+        toast.success(`Status suggested: ${mappedStatus}`);
+      } else {
+        toast.info(`AI returned an unrecognised status: ${parsed.status}`);
+      }
+    } catch (err) {
+      console.error('AI status suggestion failed', err);
+      toast.error('Failed to suggest status. Please try again.');
+    } finally {
+      setIsSuggestingStatus(false);
+    }
+  };
+
+  const generateDescription = async () => {
+    if (!title.trim()) {
+      toast.error('Please enter a task title first.');
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.AI_BASE()}/generate-description`,
+        { title },
+        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
+      );
+      setDescription(res.data);
+      toast.success('Description generated!');
+    } catch (err) {
+      console.error('AI generation failed', err);
+      toast.error('Failed to generate description. Please try again.');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -197,6 +269,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
+    cancelRefreshTimer();
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userName');
     navigate('/login');
@@ -227,7 +300,23 @@ const Dashboard = () => {
               <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="form-col">
-              <label className="field-label">Status</label>
+              <div className="description-label-row">
+                <label className="field-label">Status</label>
+                <button
+                  type="button"
+                  className="btn ai-generate-btn"
+                  onClick={suggestStatus}
+                  disabled={isSuggestingStatus}
+                  title="Suggest status using AI"
+                >
+                  {isSuggestingStatus ? (
+                    <span className="ai-spinner" />
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#fff"/><path d="M19 15l1.09 3.26L23 19l-2.91.74L19 23l-1.09-3.26L15 19l2.91-.74L19 15z" fill="#fff"/></svg>
+                  )}
+                  {isSuggestingStatus ? 'Suggesting…' : 'Suggest with AI'}
+                </button>
+              </div>
               <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -235,7 +324,23 @@ const Dashboard = () => {
           </div>
 
           <div className="form-group">
-            <label className="field-label">Description</label>
+            <div className="description-label-row">
+              <label className="field-label">Description</label>
+              <button
+                type="button"
+                className="btn ai-generate-btn"
+                onClick={generateDescription}
+                disabled={isGenerating}
+                title="Generate description using AI"
+              >
+                {isGenerating ? (
+                  <span className="ai-spinner" />
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#fff"/><path d="M19 15l1.09 3.26L23 19l-2.91.74L19 23l-1.09-3.26L15 19l2.91-.74L19 15z" fill="#fff"/></svg>
+                )}
+                {isGenerating ? 'Generating…' : 'Generate with AI'}
+              </button>
+            </div>
             <textarea className="input textarea-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
@@ -252,7 +357,7 @@ const Dashboard = () => {
 
             <div>
               {tasks.length === 0 ? (
-                <div className="empty">No tasks yet.</div>
+                <div className="empty">No tasks created.</div>
               ) : (
                 <>
                   <div className="table-responsive">

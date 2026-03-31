@@ -104,7 +104,7 @@ textarea{resize:vertical}
 .table-responsive{overflow:auto}
 .task-table{width:100%;border-collapse:collapse;font-size:14px}
 .task-table thead th{background:#f3f4f6;text-align:left;padding:12px;border-bottom:1px solid rgba(11,35,64,0.06);color:#0b2340;font-weight:700}
-.task-table tbody td{padding:12px;border-bottom:1px solid rgba(15,23,36,0.06);vertical-align:top;color:#1f2937;background:transparent}
+.task-table tbody td{padding:12px;border-bottom:1px solid rgba(15,23,36,0.06);vertical-align:top;text-align:left;color:#1f2937;background:transparent}
 .task-table tbody tr{background:transparent}
 .task-table tbody tr:hover{background:linear-gradient(90deg, rgba(2,6,23,0.02), rgba(11,42,70,0.02))}
 .task-table .task-title{font-weight:700;color:#062133}
@@ -143,6 +143,7 @@ textarea{resize:vertical}
 .badge.todo{background:#0d6efd}
 .badge.inprogress{background:#f59e0b}
 .badge.done{background:#16a34a}
+.badge.blocked{background:#dc3545}
 
 /* Pagination theme */
 .page-btn{background:#fff;border:1px solid rgba(2,6,23,0.06);padding:6px 10px;border-radius:6px;cursor:pointer;color:#0b2340}
@@ -171,3 +172,36 @@ textarea{resize:vertical}
 .empty{color:var(--muted);padding:14px;text-align:center}
 
 @media (max-width:600px){.dashboard-card{padding:16px}.dashboard-header{flex-direction:column;align-items:flex-start;gap:8px}}
+
+/* AI Description Generator */
+.description-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.description-label-row .field-label{margin-bottom:0}
+
+.ai-generate-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  padding:5px 10px;
+  border-radius:8px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  transition:opacity .2s,transform .1s;
+  white-space:nowrap;
+}
+.ai-generate-btn:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.ai-generate-btn:disabled{opacity:.6;cursor:not-allowed}
+
+@keyframes ai-spin{to{transform:rotate(360deg)}}
+.ai-spinner{
+  display:inline-block;
+  width:12px;
+  height:12px;
+  border:2px solid rgba(255,255,255,.4);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:ai-spin .7s linear infinite;
+}

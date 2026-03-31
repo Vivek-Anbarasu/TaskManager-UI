@@ -6,6 +6,9 @@ const API_CONFIG = {
   },
   USER_BASE: function() {
     return `${this.BASE_URL}/user`;
+  },
+  AI_BASE: function() {
+    return `${this.BASE_URL}/ai/task`;
   }
 };
 

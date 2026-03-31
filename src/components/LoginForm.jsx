@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_CONFIG from '../config/api';
+import { scheduleRefresh } from '../config/tokenManager';
 
 const LoginForm = () => {
 
@@ -31,6 +32,7 @@ try {
 
         localStorage.setItem('accessToken', token);
         localStorage.setItem('name', response.data);
+        scheduleRefresh(token);
         toast.success("Successfully Logged In");
         navigate('/dashboard');
       

@@ -82,7 +82,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
   });
 
@@ -107,7 +107,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const titleInput = screen.getAllByRole('textbox')[0];
@@ -136,7 +136,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const createButton = screen.getByRole('button', { name: /create task/i });
@@ -152,7 +152,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const titleInput = screen.getAllByRole('textbox')[0];
@@ -246,7 +246,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const titleInput = screen.getAllByRole('textbox')[0];
@@ -272,7 +272,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const logoutButton = screen.getByLabelText('Logout');
@@ -289,7 +289,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const statusSelect = screen.getByRole('combobox');
@@ -320,6 +320,18 @@ describe('Dashboard Component', () => {
     });
   });
 
+  it('shows empty list when API returns 404 (no records found)', async () => {
+    const error = { response: { status: 404 } };
+    axios.get.mockRejectedValueOnce(error);
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it('handles create task error', async () => {
     const user = userEvent.setup();
     axios.get.mockResolvedValueOnce({ data: [] });
@@ -328,7 +340,7 @@ describe('Dashboard Component', () => {
     render(<Dashboard />);
     
     await waitFor(() => {
-      expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
     });
     
     const titleInput = screen.getAllByRole('textbox')[0];
@@ -440,6 +452,171 @@ describe('Dashboard Component', () => {
     await waitFor(() => {
       const badges = container.querySelectorAll('.badge');
       expect(badges.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ----- AI Description Generator tests -----
+
+  it('renders the "Generate with AI" button', async () => {
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /generate with ai/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when AI generate is clicked without a title', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const aiBtn = screen.getByRole('button', { name: /generate with ai/i });
+    await user.click(aiBtn);
+
+    expect(toast.error).toHaveBeenCalledWith('Please enter a task title first.');
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it('calls AI endpoint with task title and populates description', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: 'AI-generated description text.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    await user.type(titleInput, 'My AI Task');
+
+    const aiBtn = screen.getByRole('button', { name: /generate with ai/i });
+    await user.click(aiBtn);
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://localhost:8080/ai/task/generate-description',
+        { title: 'My AI Task' },
+        { headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' } }
+      );
+      expect(toast.success).toHaveBeenCalledWith('Description generated!');
+    });
+
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    expect(descriptionInput).toHaveValue('AI-generated description text.');
+  });
+
+  it('shows error toast when AI endpoint fails', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockRejectedValueOnce(new Error('AI service unavailable'));
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    await user.type(titleInput, 'Some Task');
+
+    const aiBtn = screen.getByRole('button', { name: /generate with ai/i });
+    await user.click(aiBtn);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to generate description. Please try again.');
+    });
+  });
+
+  // ----- AI Suggest Status tests -----
+
+  it('renders the "Suggest with AI" button', async () => {
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /suggest with ai/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when suggest status is clicked without title or description', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const suggestBtn = screen.getByRole('button', { name: /suggest with ai/i });
+    await user.click(suggestBtn);
+
+    expect(toast.error).toHaveBeenCalledWith('Please enter a title and description first.');
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it('calls suggest-status API and sets the returned status', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockResolvedValueOnce({ data: JSON.stringify({ status: 'IN_PROGRESS', reason: 'Work is underway.' }) });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    await user.type(titleInput, 'My Task');
+    await user.type(descriptionInput, 'Some description');
+
+    const suggestBtn = screen.getByRole('button', { name: /suggest with ai/i });
+    await user.click(suggestBtn);
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith(
+        'http://localhost:8080/ai/task/suggest-status',
+        { title: 'My Task', description: 'Some description' },
+        { headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' } }
+      );
+      expect(toast.success).toHaveBeenCalledWith('Status suggested: In Progress');
+    });
+
+    expect(screen.getByRole('combobox')).toHaveValue('In Progress');
+  });
+
+  it('shows error toast when suggest-status API fails', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.post.mockRejectedValueOnce(new Error('AI unavailable'));
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const titleInput = screen.getAllByRole('textbox')[0];
+    const descriptionInput = screen.getAllByRole('textbox')[1];
+    await user.type(titleInput, 'My Task');
+    await user.type(descriptionInput, 'Some description');
+
+    const suggestBtn = screen.getByRole('button', { name: /suggest with ai/i });
+    await user.click(suggestBtn);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to suggest status. Please try again.');
     });
   });
 });
