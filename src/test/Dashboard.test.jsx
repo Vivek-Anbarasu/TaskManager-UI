@@ -619,4 +619,108 @@ describe('Dashboard Component', () => {
       expect(toast.error).toHaveBeenCalledWith('Failed to suggest status. Please try again.');
     });
   });
+
+  // ----- AI Summarize Tasks tests -----
+
+  it('renders the "Summarize Tasks" button', async () => {
+    axios.get.mockResolvedValueOnce({ data: [] });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /summarize tasks/i })).toBeInTheDocument();
+    });
+  });
+
+  it('calls summarize API and shows summary panel', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.get.mockResolvedValueOnce({ data: '1. Project is on track.\n2. One blocker found.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const summarizeBtn = screen.getByRole('button', { name: /summarize tasks/i });
+    await user.click(summarizeBtn);
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalledWith(
+        'http://localhost:8080/ai/task/summarize',
+        { headers: { Authorization: 'Bearer test-token' } }
+      );
+      expect(screen.getByText('AI Executive Summary')).toBeInTheDocument();
+      expect(screen.getByText('1. Project is on track.')).toBeInTheDocument();
+      expect(screen.getByText('2. One blocker found.')).toBeInTheDocument();
+    });
+  });
+
+  it('toggles summary panel closed when button is clicked again', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.get.mockResolvedValueOnce({ data: 'Summary text.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    const summarizeBtn = screen.getByRole('button', { name: /summarize tasks/i });
+    await user.click(summarizeBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('AI Executive Summary')).toBeInTheDocument();
+    });
+
+    // Button now says "Hide Summary" — click to close
+    const hideBtn = screen.getByRole('button', { name: /hide summary/i });
+    await user.click(hideBtn);
+
+    expect(screen.queryByText('AI Executive Summary')).not.toBeInTheDocument();
+  });
+
+  it('closes summary panel when × button is clicked', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.get.mockResolvedValueOnce({ data: 'Summary text.' });
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /summarize tasks/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('AI Executive Summary')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTitle('Close'));
+
+    expect(screen.queryByText('AI Executive Summary')).not.toBeInTheDocument();
+  });
+
+  it('shows error toast when summarize API fails', async () => {
+    const user = userEvent.setup();
+    axios.get.mockResolvedValueOnce({ data: [] });
+    axios.get.mockRejectedValueOnce(new Error('AI unavailable'));
+
+    render(<Dashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No tasks created.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /summarize tasks/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to summarize tasks. Please try again.');
+    });
+
+    expect(screen.queryByText('AI Executive Summary')).not.toBeInTheDocument();
+  });
 });

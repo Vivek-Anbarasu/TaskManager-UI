@@ -36,6 +36,9 @@ const Dashboard = () => {
   const [editingId, setEditingId] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuggestingStatus, setIsSuggestingStatus] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [showSummary, setShowSummary] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [columnFilters, setColumnFilters] = useState([]);
   const [sorting, setSorting] = useState([]);
@@ -139,6 +142,27 @@ const Dashboard = () => {
       if (err.response && err.response.status === 401) navigate('/login');
       else if (err.response && err.response.status === 404) setTasks([]);
       else toast.error('Failed to load tasks');
+    }
+  };
+
+  const summarizeTasks = async () => {
+    if (showSummary) {
+      setShowSummary(false);
+      return;
+    }
+    setIsSummarizing(true);
+    try {
+      const res = await axios.get(
+        `${API_CONFIG.AI_BASE()}/summarize`,
+        { headers: authHeader() }
+      );
+      setSummary(res.data);
+      setShowSummary(true);
+    } catch (err) {
+      console.error('AI summarization failed', err);
+      toast.error('Failed to summarize tasks. Please try again.');
+    } finally {
+      setIsSummarizing(false);
     }
   };
 
@@ -353,7 +377,37 @@ const Dashboard = () => {
           
 
           <div className="table-area">
-            <div  />
+            <div className="table-toolbar">
+              <button
+                type="button"
+                className="btn ai-summarize-btn"
+                onClick={summarizeTasks}
+                disabled={isSummarizing}
+                title="Get an AI executive summary of all tasks"
+              >
+                {isSummarizing ? (
+                  <span className="ai-spinner" />
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 10h16M4 14h10" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#fff" opacity="0.6"/></svg>
+                )}
+                {isSummarizing ? 'Summarizing…' : showSummary ? 'Hide Summary' : 'Summarize Tasks'}
+              </button>
+            </div>
+
+            {showSummary && summary && (
+              <div className="ai-summary-panel">
+                <div className="ai-summary-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#6366f1"/></svg>
+                  <span>AI Executive Summary</span>
+                  <button className="summary-close-btn" onClick={() => setShowSummary(false)} title="Close">✕</button>
+                </div>
+                <div className="ai-summary-body">
+                  {summary.split('\n').map((line, i) => (
+                    line.trim() ? <p key={i} className="summary-line">{line}</p> : null
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               {tasks.length === 0 ? (
