@@ -1,0 +1,113 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2537 >>
+stream
+BT
+/F1 14 Tf
+50 750 Td
+(Project Requirements - Sprint 6 Tasks) Tj
+0 -20 Td
+/F2 10 Tf
+(The following requirements are scoped for Sprint 6 implementation.) Tj
+0 -28 Td
+/F1 12 Tf
+(Task 1: Build RESTful Product Catalogue API) Tj
+/F2 10 Tf
+0 -14 Td
+(Implement Spring Boot REST endpoints for the product catalogue module.) Tj
+0 -13 Td
+(Provide full CRUD for /products and /products/{id} with pagination support.) Tj
+0 -13 Td
+(Add category filter, price sort, and keyword search query parameters.) Tj
+0 -13 Td
+(Acceptance Criteria: All endpoints return correct HTTP codes. Pagination works.) Tj
+0 -13 Td
+(Status: To Do) Tj
+0 -22 Td
+/F1 12 Tf
+(Task 2: Real-Time Inventory Tracking via WebSocket) Tj
+/F2 10 Tf
+0 -14 Td
+(Build an inventory service that pushes stock updates over WebSocket and STOMP.) Tj
+0 -13 Td
+(Fire low-stock alerts when quantity falls below the configured minimum threshold.) Tj
+0 -13 Td
+(Integrate with the order processing service to decrement stock on order placement.) Tj
+0 -13 Td
+(Acceptance Criteria: Updates delivered in under 1 second. Alerts trigger correctly.) Tj
+0 -13 Td
+(Status: In Progress) Tj
+0 -22 Td
+/F1 12 Tf
+(Task 3: Migrate Session Auth to OAuth 2.0 with OIDC) Tj
+/F2 10 Tf
+0 -14 Td
+(Replace the custom session-based authentication with OAuth 2.0 and OIDC.) Tj
+0 -13 Td
+(Support Google and Microsoft as external identity providers.) Tj
+0 -13 Td
+(Maintain backward compatibility with the existing username and password login.) Tj
+0 -13 Td
+(Acceptance Criteria: OAuth login works. Social accounts linkable to user profile.) Tj
+0 -13 Td
+(Status: Blocked) Tj
+0 -22 Td
+/F1 12 Tf
+(Task 4: Integrate Elasticsearch for Full-Text Product Search) Tj
+/F2 10 Tf
+0 -14 Td
+(Add Elasticsearch for full-text product search with autocomplete suggestions.) Tj
+0 -13 Td
+(Support faceted filters by category, price range, brand, and average rating.) Tj
+0 -13 Td
+(Sync data from PostgreSQL using Debezium Change Data Capture pipeline.) Tj
+0 -13 Td
+(Acceptance Criteria: Search results returned in under 200ms. Filters accurate.) Tj
+0 -13 Td
+(Status: To Do) Tj
+0 -22 Td
+/F1 12 Tf
+(Task 5: Build React Admin Analytics Dashboard) Tj
+/F2 10 Tf
+0 -14 Td
+(Create an admin dashboard in React using recharts for sales and revenue charts.) Tj
+0 -13 Td
+(Support custom date range selection and CSV export of all filtered data.) Tj
+0 -13 Td
+(Dashboard must load in under 2 seconds and be fully mobile responsive.) Tj
+0 -13 Td
+(Acceptance Criteria: Charts render correctly. CSV exports all visible rows.) Tj
+0 -13 Td
+(Status: To Do) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000002839 00000 n 
+0000002941 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3038
+%%EOF
