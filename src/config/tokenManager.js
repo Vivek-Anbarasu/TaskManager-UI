@@ -1,5 +1,5 @@
 import axios from 'axios';
-import API_CONFIG from './api';
+import { USER_BASE } from './api';
 
 // Refresh the token 2 minutes before it expires
 const REFRESH_BUFFER_MS = 2 * 60 * 1000;
@@ -32,7 +32,7 @@ async function doRefresh() {
 
   try {
     const response = await axios.post(
-      `${API_CONFIG.USER_BASE()}/refresh-token`,
+      `${USER_BASE()}/refresh-token`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );

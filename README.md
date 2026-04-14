@@ -1,269 +1,159 @@
-# Task Manager Application
+# Task Manager App
 
-A modern, full-featured task management application built with React, offering user authentication, task CRUD operations, and an intuitive dashboard interface.
+A full-featured task management single-page application built with React, featuring AI-powered task assistance and document import capabilities.
 
-## 🚀 Features
+## Features
 
-- **User Authentication**
-  - User registration with password strength validation
-  - Secure login with JWT token authentication
-  - Session management with localStorage
+- **Task Management** — Create, view, edit, and delete tasks with title, description, and status
+- **AI Description Generation** — Generate a task description automatically from just a title
+- **AI Status Suggestion** — Get an AI-recommended status based on task title and description
+- **AI Task Breakdown** — Break a task down into actionable subtasks
+- **AI Executive Summary** — Summarize all your tasks in a single snapshot
+- **AI Chat Assistant** — Ask free-text questions about your tasks (e.g. "What should I work on next?")
+- **Document Import** — Upload PDF, DOC, DOCX, or XLSX files and have tasks extracted automatically
+- **Authentication** — JWT-based login with proactive silent token refresh
+- **Password Strength Meter** — Live feedback during registration (Weak / Medium / Strong)
 
-- **Task Management**
-  - Create, read, update, and delete tasks
-  - Task status tracking (To Do, In Progress, Done)
-  - Filter and search tasks by title, description, or status
-  - Sorting capabilities across all columns
-  - Pagination with customizable page sizes
+## Tech Stack
 
-- **Dashboard**
-  - Real-time task overview
-  - Interactive table with sorting and filtering
-  - Task editing and deletion with confirmation dialogs
-  - Responsive design for mobile and desktop
+| Layer | Technology |
+|---|---|
+| Framework | React 19 |
+| Routing | React Router DOM v7 |
+| Build Tool | Vite 8 |
+| HTTP Client | Axios |
+| Table | TanStack React Table v8 |
+| Notifications | React Toastify |
+| Dialogs | React Confirm Alert |
+| Testing | Vitest 4 + jsdom |
+| Test Utilities | Testing Library (React, Jest DOM, User Event) |
+| Coverage | Vitest Coverage V8 |
+| Linting | ESLint 9 |
 
-- **User Experience**
-  - Toast notifications for user feedback
-  - Password strength meter
-  - Form validation
-  - Intuitive navigation
+## Project Structure
 
-## 🛠️ Tech Stack
+```
+src/
+├── App.jsx                  # Root component: router + routes + toast container
+├── main.jsx                 # React DOM entry point
+├── components/
+│   ├── LoginForm.jsx        # Login page
+│   ├── RegistrationPage.jsx # Registration page with password strength meter
+│   ├── Dashboard.jsx        # Main authenticated shell
+│   ├── TaskForm.jsx         # Create/edit form with inline AI buttons
+│   ├── TaskTable.jsx        # Data table with filtering, sorting, pagination
+│   ├── AIChatPanel.jsx      # Slide-in AI chat modal
+│   └── ImportModal.jsx      # File upload modal for document import
+├── config/
+│   ├── api.js               # Base URL + API endpoint factories
+│   └── tokenManager.js      # JWT decode, proactive refresh scheduling
+├── hooks/
+│   ├── useAuth.js           # Auth state, auth header helper, logout
+│   ├── useTaskActions.js    # Task CRUD state + API calls
+│   └── useAI.js             # AI features state + API calls + document import
+├── css/                     # Per-component stylesheets
+└── test/                    # Vitest test files + setup
+```
 
-- **Frontend Framework:** React 19.2.0
-- **Build Tool:** Vite 7.2.4
-- **Routing:** React Router DOM 7.10.1
-- **HTTP Client:** Axios 1.13.2
-- **UI Components:** React Bootstrap 2.10.10
-- **Table Management:** TanStack React Table 8.21.3
-- **Form Handling:** React Hook Form 7.68.0 with Yup validation
-- **Notifications:** React Toastify 11.0.5
-- **Testing:** Vitest 4.0.16 with React Testing Library
-- **Package Manager:** Yarn with PnP (Plug'n'Play)
+## Getting Started
 
-## 📦 Installation
+### Prerequisites
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd task-manager-app
-   ```
+- Node.js (v18 or higher recommended)
+- A running backend API server
 
-2. **Install dependencies**
-   ```bash
-   yarn install
-   ```
+### Installation
 
-3. **Configure API endpoint**
-   
-   The application connects to a backend API at `http://localhost:8080`. Update the API base URL in the following files if your backend runs on a different port:
-   - `src/components/LoginForm.jsx`
-   - `src/components/RegistrationPage.jsx`
-   - `src/components/Dashboard.jsx`
-
-## 🚀 Running the Application
-
-### Development Mode
 ```bash
-yarn dev
+npm install
 ```
-The application will start at `http://localhost:5173` (or another port if 5173 is in use).
 
-### Production Build
+### Environment Configuration
+
+Create a `.env` file in the project root:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Replace the value with the base URL of your backend API.
+
+### Running the App
+
 ```bash
-yarn build
+# Development server with hot module replacement
+npm run dev
+
+# Production build
+npm run build
+
+# Preview the production build locally
+npm run preview
 ```
 
-### Preview Production Build
+## Testing
+
 ```bash
-yarn preview
+# Run tests in watch mode
+npm test
+
+# Run tests once with V8 coverage report
+npm run coverage
 ```
 
-## 🧪 Testing
+Coverage output is written to the `coverage/` directory.
 
-### Run All Tests
+## Linting
+
 ```bash
-yarn test
+npm run lint
 ```
 
-### Run Tests with Coverage
-```bash
-yarn test --coverage
-```
+## API Overview
 
-### Run Tests in Watch Mode
-```bash
-yarn test --watch
-```
+All endpoints are resolved from `VITE_API_BASE_URL`. Every request includes an `Authorization: Bearer <token>` header.
 
-### View Coverage Report
-After running tests with coverage, open the HTML report:
-```bash
-Start-Process coverage/index.html  # Windows
-open coverage/index.html           # macOS
-xdg-open coverage/index.html       # Linux
-```
+### Auth
 
-## 📊 Test Coverage
-
-The application maintains excellent test coverage:
-
-- **Overall Coverage:** 96.11%
-- **Components:**
-  - LoginForm: 100% ✨
-  - RegistrationPage: 98.3%
-  - Dashboard: 94.59%
-  - App: 80%
-
-**Total Test Suites:** 4
-**Total Tests:** 59 (all passing ✅)
-
-## 📁 Project Structure
-
-```
-task-manager-app/
-├── public/                 # Static assets
-├── src/
-│   ├── assets/            # Images, logos, and other assets
-│   ├── components/        # React components
-│   │   ├── Dashboard.jsx
-│   │   ├── LoginForm.jsx
-│   │   └── RegistrationPage.jsx
-│   ├── css/               # Component-specific styles
-│   │   ├── App.css
-│   │   ├── Dashboard.css
-│   │   ├── LoginForm.css
-│   │   └── RegistrationPage.css
-│   ├── test/              # Test files
-│   │   ├── App.test.jsx
-│   │   ├── Dashboard.test.jsx
-│   │   ├── LoginForm.test.jsx
-│   │   ├── RegistrationPage.test.jsx
-│   │   └── setup.js
-│   ├── App.jsx            # Main application component
-│   └── main.jsx           # Application entry point
-├── coverage/              # Test coverage reports
-├── .pnp.cjs              # Yarn PnP runtime
-├── eslint.config.js      # ESLint configuration
-├── index.html            # HTML template
-├── package.json          # Project dependencies and scripts
-├── vite.config.js        # Vite configuration
-└── vitest.config.js      # Vitest configuration
-```
-
-## 🔌 API Endpoints
-
-The application expects the following backend API endpoints:
-
-### Authentication
-- `POST /user/new-registration` - Register a new user
-  ```json
-  {
-    "firstname": "string",
-    "lastname": "string",
-    "email": "string",
-    "password": "string",
-    "country": "string",
-    "roles": "ROLE_ADMIN"
-  }
-  ```
-
-- `POST /user/authenticate` - Login user
-  ```json
-  {
-    "email": "string",
-    "password": "string"
-  }
-  ```
-  Response: Returns user name and JWT token in Authorization header
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/user/authenticate` | Login — JWT returned in `Authorization` response header |
+| POST | `/user/register` | Register a new user |
+| POST | `/user/refresh-token` | Exchange a near-expiry token for a fresh one |
 
 ### Tasks
-- `GET /v1/getAllTasks` - Get all tasks for authenticated user
-- `POST /v1/saveTask` - Create a new task
-  ```json
-  {
-    "title": "string",
-    "description": "string",
-    "status": "To Do" | "In Progress" | "Done"
-  }
-  ```
-- `PUT /v1/updateTask` - Update existing task
-  ```json
-  {
-    "id": "number",
-    "title": "string",
-    "description": "string",
-    "status": "string"
-  }
-  ```
-- `DELETE /v1/deleteTask/{id}` - Delete a task
 
-**Note:** All task endpoints require Bearer token authentication.
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/task/` | Fetch all tasks |
+| POST | `/task/` | Create a task |
+| PUT | `/task/` | Update a task |
+| DELETE | `/task/:id` | Delete a task |
 
-## 🎨 Key Features Explained
+### AI
 
-### Password Strength Validation
-The registration form includes a real-time password strength meter that evaluates:
-- Password length (8+ characters recommended)
-- Use of lowercase letters
-- Use of uppercase letters
-- Use of numbers
-- Use of special characters (!@#$%^&*)
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/ai/task/generate-description` | Generate a description from a title |
+| POST | `/ai/task/suggest-status` | Suggest a status from title + description |
+| POST | `/ai/task/breakdown` | Break a task into subtasks |
+| GET | `/ai/task/summarize` | Executive summary of all tasks |
+| POST | `/ai/task/chat` | Free-text Q&A about tasks |
+| POST | `/ai/task/import-document` | Extract tasks from an uploaded document |
 
-### Task Filtering and Sorting
-- Click column headers to sort
-- Use search boxes under each column to filter
-- Combine multiple filters for precise results
-- Pagination automatically adjusts to filtered results
+## Authentication Flow
 
-### Authentication Flow
-1. User registers with email and password
-2. User logs in and receives JWT token
-3. Token is stored in localStorage
-4. All API requests include the token in Authorization header
-5. User is redirected to login if token is invalid or expired
+1. User submits credentials → `POST /user/authenticate`
+2. JWT is extracted from the `Authorization` response header and stored in `localStorage`
+3. A proactive refresh timer is armed 2 minutes before the token expires
+4. On page reload, `initRefreshOnLoad()` re-reads the stored token and re-arms the timer
+5. On logout, the timer is cancelled and `localStorage` is cleared
 
-## 🔒 Security
+## Task Statuses
 
-- JWT token-based authentication
-- Tokens stored in localStorage
-- Automatic token validation on protected routes
-- Password strength enforcement
-- Form validation on both client and server side
-
-## 🐛 Known Issues
-
-- None at this time
-
-## 📝 Scripts
-
-| Command | Description |
-|---------|-------------|
-| `yarn dev` | Start development server |
-| `yarn build` | Build for production |
-| `yarn preview` | Preview production build |
-| `yarn test` | Run tests |
-| `yarn test --coverage` | Run tests with coverage |
-| `yarn lint` | Run ESLint |
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is available for educational and development purposes.
-
-## 📧 Support
-
-For issues and questions, please open an issue in the repository.
-
----
-
-**Version:** 1.0-RELEASE  
-**Last Updated:** January 2026
-
+| Status | Badge Color |
+|---|---|
+| `todo` | Default |
+| `inprogress` | Blue |
+| `done` | Green |
+| `blocked` | Red |

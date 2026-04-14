@@ -1,10 +1,9 @@
-
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import '../css/RegistrationPage.css';
 import { toast } from 'react-toastify';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import API_CONFIG from '../config/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { USER_BASE } from '../config/api';
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
@@ -33,44 +32,42 @@ const RegistrationPage = () => {
     return { score, label, color };
   };
 
-  const registerApplication = async (e) => {
+  const [isPending, startTransition] = useTransition();
 
+  const registerApplication = (e) => {
     e.preventDefault();
-
     if (!firstname || !lastname || !email || !password || !country) {
       toast.error('Please fill out all required fields.');
       return;
     }
-
-    try {
-      console.log("Sending registration request");
-      const response = await axios.post(`${API_CONFIG.USER_BASE()}/new-registration`, {
-        firstname: firstname,
-        lastname: lastname,
-        email: email,
-        password: password,
-        country: country,
-        role: role
-      });
-
-      if (response && response.data === 'User Succesfully Registered') {
-        toast.success(response.data);
-        navigate('/login');
-      } else {
-        const msg = (response && response.data) ? response.data : 'Registration failed';
-        toast.error(msg);
+    startTransition(async () => {
+      try {
+        const response = await axios.post(`${USER_BASE()}/new-registration`, {
+          firstname,
+          lastname,
+          email,
+          password,
+          country,
+          role,
+        });
+        if (response && response.data === 'User Succesfully Registered') {
+          toast.success(response.data);
+          navigate('/login');
+        } else {
+          const msg = (response && response.data) ? response.data : 'Registration failed';
+          toast.error(msg);
+        }
+      } catch {
+        toast.error('Registration failed. Please try again.');
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      toast.error('Registration failed. Please try again.');
-    }
+    });
   };
 
  
 
   return (
     <div className="register-container">
-      <form className="register-form" onSubmit={(registerApplication)}>
+      <form className="register-form" onSubmit={registerApplication}>
         <h2 className="register-title">Create Account</h2>
 
         <label htmlFor="firstname" className="register-label">First Name</label>
@@ -168,10 +165,10 @@ const RegistrationPage = () => {
         </select>
 
 
-        <button type="submit" className="register-button">Register</button>
+        <button type="submit" className="register-button" disabled={isPending}>{isPending ? 'Registering…' : 'Register'}</button>
 
         <div className="footer-link">
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>Already have an account? Login here.</a>
+          <Link to="/login">Already have an account? Login here.</Link>
         </div>
       </form>
     </div>

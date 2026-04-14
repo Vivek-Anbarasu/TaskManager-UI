@@ -1,9 +1,9 @@
-import  { useState } from 'react';
+import { useState, useTransition } from 'react';
 import '../css/LoginForm.css';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import API_CONFIG from '../config/api';
+import { USER_BASE } from '../config/api';
 import { scheduleRefresh } from '../config/tokenManager';
 
 const LoginForm = () => {
@@ -13,41 +13,32 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const [isPending, startTransition] = useTransition();
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
     if (!email || !password) {
       toast.error('Please fill out all required fields.');
       return;
     }
-
-try {
-      const response = await axios.post(`${API_CONFIG.USER_BASE()}/authenticate`, { email: email, password: password });
-      const authorizationHeader = response.headers['authorization'];
-      console.log(response);
-      console.log(response.headers);
-      if (authorizationHeader && authorizationHeader.startsWith('Bearer ')) {
-        const token = authorizationHeader.substring(7); // Extract the token after 'Bearer '
-        console.log('Received Bearer Token:', token);
-
-        localStorage.setItem('accessToken', token);
-        localStorage.setItem('name', response.data);
-        scheduleRefresh(token);
-        toast.success("Successfully Logged In");
-        navigate('/dashboard');
-      
-      } else {
-        console.error('Authorization header not found or not in Bearer format.');
+    startTransition(async () => {
+      try {
+        const response = await axios.post(`${USER_BASE()}/authenticate`, { email, password });
+        const authorizationHeader = response.headers['authorization'];
+        if (authorizationHeader && authorizationHeader.startsWith('Bearer ')) {
+          const token = authorizationHeader.substring(7);
+          localStorage.setItem('accessToken', token);
+          localStorage.setItem('name', response.data);
+          scheduleRefresh(token);
+          toast.success("Successfully Logged In");
+          navigate('/dashboard');
+        }
+      } catch {
+        toast.error("Invalid Credentials");
       }
-
-    } catch (error) {
-      console.log(error);
-      toast.error("Invalid Credentials");
-    }
-    
-    // Reset form fields
-    setEmail('');
-    setPassword('');
+      setEmail('');
+      setPassword('');
+    });
   };
 
   return (
@@ -83,12 +74,12 @@ try {
         
      
 
-        <button type="submit" className="login-button">
-          Log In
+        <button type="submit" className="login-button" disabled={isPending}>
+          {isPending ? 'Logging in…' : 'Log In'}
         </button>
 
         <div className="footer-link">
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>Don't have an account? Register Now</a>
+          <Link to="/register">Don't have an account? Register Now</Link>
         </div>
       </form>
     </div>

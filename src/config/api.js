@@ -1,15 +1,6 @@
 // API Configuration
-const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL,
-  TASK_BASE: function() {
-    return `${this.BASE_URL}/task`;
-  },
-  USER_BASE: function() {
-    return `${this.BASE_URL}/user`;
-  },
-  AI_BASE: function() {
-    return `${this.BASE_URL}/ai/task`;
-  }
-};
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-export default API_CONFIG;
+export const TASK_BASE = () => `${BASE_URL}/task`;
+export const USER_BASE = () => `${BASE_URL}/user`;
+export const AI_BASE   = () => `${BASE_URL}/ai/task`;

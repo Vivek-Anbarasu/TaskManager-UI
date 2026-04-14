@@ -18,6 +18,7 @@ vi.mock('axios');
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  Link: ({ to, children }) => <a href={to}>{children}</a>,
 }));
 
 describe('RegistrationPage Component', () => {
@@ -135,13 +136,10 @@ describe('RegistrationPage Component', () => {
   });
 
   it('navigates to login page when clicking login link', async () => {
-    const user = userEvent.setup();
     render(<RegistrationPage />);
     
     const loginLink = screen.getByText(/already have an account\? login here\./i);
-    await user.click(loginLink);
-    
-    expect(mockNavigate).toHaveBeenCalledWith('/login');
+    expect(loginLink.closest('a')).toHaveAttribute('href', '/login');
   });
 
   it('displays password strength as "Too short" for empty password', () => {

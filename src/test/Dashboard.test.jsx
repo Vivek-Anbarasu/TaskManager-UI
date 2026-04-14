@@ -23,6 +23,7 @@ vi.mock('axios');
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  Link: ({ to, children }) => <a href={to}>{children}</a>,
 }));
 
 describe('Dashboard Component', () => {

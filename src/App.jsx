@@ -5,26 +5,18 @@ import 'react-toastify/dist/ReactToastify.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import RegistrationPage from './components/RegistrationPage';
 import Dashboard from './components/Dashboard';
-import { useState } from "react";
-
 
 export const App = () => {
-
-  const [currentForm, setCurrentForm] = useState('login');
-
-  const toggleForm = (formName) => {
-    setCurrentForm(formName);
-  }
 
   return (
     <div className="App">
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginForm toggleForm={toggleForm} />} />
-        <Route path="/register" element={<RegistrationPage toggleForm={toggleForm} />} />
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/register" element={<RegistrationPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         {/* Add a default route or homepage */}
-        <Route path="/" element={<LoginForm toggleForm={toggleForm} />} />
+        <Route path="/" element={<LoginForm />} />
       </Routes>
     </Router>
       <ToastContainer /> 

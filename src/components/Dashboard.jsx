@@ -1,137 +1,36 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../css/Dashboard.css';
-import logo from '../assets/task-manager-logo.svg';
-import { toast } from 'react-toastify';
-import API_CONFIG from '../config/api';
-import { initRefreshOnLoad, cancelRefreshTimer } from '../config/tokenManager';
-import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
-import axios from 'axios';
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  flexRender,
-} from '@tanstack/react-table';
-
-const STATUS_OPTIONS = ['To Do', 'In Progress', 'Done', 'Blocked'];
-
-const AI_STATUS_MAP = {
-  TODO: 'To Do',
-  IN_PROGRESS: 'In Progress',
-  DONE: 'Done',
-  BLOCKED: 'Blocked',
-};
+import logo from '../assets/task-manager-logo.svg';
+import { initRefreshOnLoad } from '../config/tokenManager';
+import { useAuth } from '../hooks/useAuth';
+import { useTaskActions } from '../hooks/useTaskActions';
+import { useAI } from '../hooks/useAI';
+import TaskForm from './TaskForm';
+import TaskTable from './TaskTable';
+import AIChatPanel from './AIChatPanel';
+import ImportModal from './ImportModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState([]);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState(STATUS_OPTIONS[0]);
-  const [editingId, setEditingId] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSuggestingStatus, setIsSuggestingStatus] = useState(false);
-  const [isSummarizing, setIsSummarizing] = useState(false);
-  const [summary, setSummary] = useState('');
-  const [showSummary, setShowSummary] = useState(false);
-  const [isBreakingDown, setIsBreakingDown] = useState(false);
-  const [breakdown, setBreakdown] = useState('');
-  const [showChat, setShowChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const [isChatting, setIsChatting] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importFile, setImportFile] = useState(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importResult, setImportResult] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [columnFilters, setColumnFilters] = useState([]);
-  const [sorting, setSorting] = useState([]);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const { userName, authHeader, handleLogout } = useAuth(navigate);
 
-  const authHeader = () => {
-    const token = localStorage.getItem('accessToken');
-    console.log('Using token:', token);
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+  const {
+    tasks, title, setTitle, description, setDescription,
+    status, setStatus, editingId, isSubmitting,
+    fetchTasks, resetForm, handleAddOrUpdate, handleEdit, handleDelete,
+  } = useTaskActions({ authHeader, navigate });
 
-  useEffect(() => {
-    // adjust current page if tasks change (e.g., after delete)
-    const totalPages = Math.max(1, Math.ceil(tasks.length / pagination.pageSize));
-    setCurrentPage((p) => Math.min(p, totalPages));
-  }, [tasks]);
-
-  const columns = useMemo(() => [
-    {
-      accessorKey: 'title',
-      header: 'Title',
-      cell: (info) => info.getValue(),
-      enableSorting: true,
-      enableColumnFilter: true,
-    },
-    {
-      accessorKey: 'description',
-      header: 'Description',
-      cell: (info) => {
-        const value = info.getValue() || '';
-        const parts = value.split(/(Acceptance Criteria:)/);
-        return (
-          <span>
-            {parts.map((part, i) =>
-              part === 'Acceptance Criteria:' ? <><br key={i} /><strong>{part}</strong></> : part
-            )}
-          </span>
-        );
-      },
-      enableSorting: true,
-      enableColumnFilter: true,
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: (info) => {
-        const v = info.getValue() || '';
-        const lc = v.toString().toLowerCase();
-        const cls = lc.includes('done') ? 'done' : lc.includes('progress') ? 'inprogress' : lc.includes('blocked') ? 'blocked' : 'todo';
-        return <span className={`badge ${cls}`}>{v}</span>;
-      },
-      enableSorting: true,
-      enableColumnFilter: true,
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="action-buttons">
-          <button className="icon-btn" title="Edit" onClick={() => handleEdit(row.original)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#0b2340"/><path d="M20.71 7.04a1.0001 1.0001 0 000-1.41l-2.34-2.34a1.0001 1.0001 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#0b2340"/></svg>
-          </button>
-          <button className="icon-btn" title="Delete" onClick={() => handleDelete(row.original.id)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12z" fill="#dc3545"/><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="#dc3545"/></svg>
-          </button>
-        </div>
-      ),
-    },
-  ], []);
-
-  const table = useReactTable({
-    data: tasks,
-    columns,
-    state: { columnFilters, sorting, pagination },
-    onColumnFiltersChange: setColumnFilters,
-    onSortingChange: setSorting,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    debugTable: false,
-  });
+  const {
+    isGenerating, isSuggestingStatus, isBreakingDown, breakdown, setBreakdown,
+    generateDescription, suggestStatus, breakdownTask,
+    isSummarizing, summary, showSummary, setShowSummary, summarizeTasks,
+    showChat, setShowChat, chatMessages, chatInput, setChatInput, isChatting, sendChatMessage,
+    showImportModal, setShowImportModal, importFile, setImportFile,
+    isImporting, importResult, setImportResult, importDocument,
+  } = useAI({ authHeader, fetchTasks, title, description, setDescription, setStatus });
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -141,243 +40,16 @@ const Dashboard = () => {
     }
     initRefreshOnLoad();
     fetchTasks();
-  }, [navigate]);
+  }, [navigate, fetchTasks]);
 
-  const fetchTasks = async () => {
-    try {
-      const res = await axios.get(`${API_CONFIG.TASK_BASE()}/`, { headers: authHeader() });
-      setTasks(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Failed to fetch tasks', err);
-      if (err.response && err.response.status === 401) navigate('/login');
-      else if (err.response && err.response.status === 404) setTasks([]);
-      else toast.error('Failed to load tasks');
-    }
-  };
-
-  const breakdownTask = async () => {
-    if (!title.trim() || !description.trim()) {
-      toast.error('Please enter a title and description first.');
-      return;
-    }
-    setIsBreakingDown(true);
-    setBreakdown('');
-    try {
-      const res = await axios.post(
-        `${API_CONFIG.AI_BASE()}/breakdown`,
-        { title, description },
-        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
-      );
-      setBreakdown(res.data);
-    } catch (err) {
-      console.error('AI breakdown failed', err);
-      toast.error('Failed to break down task. Please try again.');
-    } finally {
-      setIsBreakingDown(false);
-    }
-  };
-
-  const sendChatMessage = async () => {
-    const message = chatInput.trim();
-    if (!message) return;
-    setChatMessages((prev) => [...prev, { role: 'user', text: message }]);
-    setChatInput('');
-    setIsChatting(true);
-    try {
-      const res = await axios.post(
-        `${API_CONFIG.AI_BASE()}/chat`,
-        { message },
-        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
-      );
-      const { reply, tasksAnalyzed } = res.data;
-      setChatMessages((prev) => [...prev, { role: 'ai', text: reply, tasksAnalyzed }]);
-    } catch (err) {
-      console.error('AI chat failed', err);
-      setChatMessages((prev) => [...prev, { role: 'ai', text: 'Sorry, I could not process your question. Please try again.' }]);
-    } finally {
-      setIsChatting(false);
-    }
-  };
-
-  const importDocument = async () => {
-    if (!importFile) {
-      toast.error('Please select a file to import.');
-      return;
-    }
-    setIsImporting(true);
-    setImportResult(null);
-    try {
-      const formData = new FormData();
-      formData.append('file', importFile);
-      const res = await axios.post(
-        `${API_CONFIG.AI_BASE()}/import-document`,
-        formData,
-        { headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' } }
-      );
-      setImportResult(res.data);
-      await fetchTasks();
-    } catch (err) {
-      console.error('Document import failed', err);
-      toast.error('Failed to import document. Please try again.');
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const summarizeTasks = async () => {
-    if (showSummary) {
-      setShowSummary(false);
-      return;
-    }
-    setIsSummarizing(true);
-    try {
-      const res = await axios.get(
-        `${API_CONFIG.AI_BASE()}/summarize`,
-        { headers: authHeader() }
-      );
-      setSummary(res.data);
-      setShowSummary(true);
-    } catch (err) {
-      console.error('AI summarization failed', err);
-      toast.error('Failed to summarize tasks. Please try again.');
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  const suggestStatus = async () => {
-    if (!title.trim() || !description.trim()) {
-      toast.error('Please enter a title and description first.');
-      return;
-    }
-    setIsSuggestingStatus(true);
-    try {
-      const res = await axios.post(
-        `${API_CONFIG.AI_BASE()}/suggest-status`,
-        { title, description },
-        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
-      );
-      const parsed = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-      const mappedStatus = AI_STATUS_MAP[parsed.status];
-      if (mappedStatus) {
-        setStatus(mappedStatus);
-        toast.success(`Status suggested: ${mappedStatus}`);
-      } else {
-        toast.info(`AI returned an unrecognised status: ${parsed.status}`);
-      }
-    } catch (err) {
-      console.error('AI status suggestion failed', err);
-      toast.error('Failed to suggest status. Please try again.');
-    } finally {
-      setIsSuggestingStatus(false);
-    }
-  };
-
-  const generateDescription = async () => {
-    if (!title.trim()) {
-      toast.error('Please enter a task title first.');
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      const res = await axios.post(
-        `${API_CONFIG.AI_BASE()}/generate-description`,
-        { title },
-        { headers: { ...authHeader(), 'Content-Type': 'application/json' } }
-      );
-      setDescription(res.data);
-      toast.success('Description generated!');
-    } catch (err) {
-      console.error('AI generation failed', err);
-      toast.error('Failed to generate description. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setStatus(STATUS_OPTIONS[0]);
-    setEditingId(null);
-    setBreakdown('');
-  };
-
-  const handleAddOrUpdate = (e) => {
-    e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      toast.error('Please provide title and description.');
-      return;
-    }
-
-    if (editingId) {
-      // update via API
-      (async () => {
-        try {
-          const payload = { id: editingId, title, description, status };
-          await axios.put(`${API_CONFIG.TASK_BASE()}/`, payload, { headers: authHeader() });
-          toast.success('Task updated');
-          await fetchTasks();
-        } catch (err) {
-          console.error('Update failed', err);
-          toast.error('Failed to update task');
-        }
-      })();
-    } else {
-      // create via API
-      (async () => {
-        try {
-          const payload = { title, description, status };
-          await axios.post(`${API_CONFIG.TASK_BASE()}/`, payload, { headers: authHeader() });
-          toast.success('Task created');
-          await fetchTasks();
-        } catch (err) {
-          console.error('Create failed', err);
-          toast.error('Failed to create task');
-        }
-      })();
-    }
+  const handleReset = useCallback(() => {
     resetForm();
-  };
+    setBreakdown('');
+  }, [resetForm, setBreakdown]);
 
-  const handleEdit = (task) => {
-    setEditingId(task.id);
-    setTitle(task.title);
-    setDescription(task.description);
-    setStatus(task.status);
-  };
-
-  const handleDelete = (id) => {
-    confirmAlert({
-      title: 'Confirm Delete',
-      message: 'Are you sure you want to delete this task?',
-      buttons: [
-        {
-          label: 'Yes',
-          onClick: async () => {
-            try {
-              await axios.delete(`${API_CONFIG.TASK_BASE()}/${id}`, { headers: authHeader() });
-              toast.success('Task deleted');
-              await fetchTasks();
-            } catch (err) {
-              console.error('Delete failed', err);
-              toast.error('Failed to delete task');
-            }
-          }
-        },
-        {
-          label: 'No',
-        }
-      ]
-    });
-  };
-
-  const handleLogout = () => {
-    cancelRefreshTimer();
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userName');
-    navigate('/login');
-  };
+  const handleFormSubmit = useCallback((e) => {
+    handleAddOrUpdate(e, () => setBreakdown(''));
+  }, [handleAddOrUpdate, setBreakdown]);
 
   return (
     <div className="dashboard-container">
@@ -388,7 +60,7 @@ const Dashboard = () => {
           </div>
           <div className="controls">
             <div className="user-controls">
-              <div className="welcome-text">Logged in as {localStorage.getItem('name')}</div>
+              <div className="welcome-text">Logged in as {userName}</div>
               <button className="icon-btn" title="Logout" aria-label="Logout" onClick={handleLogout}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9z" fill="#dc3545"/><path d="M20 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" fill="#dc3545"/></svg>
               </button>
@@ -397,324 +69,60 @@ const Dashboard = () => {
         </div>
 
         <div className="main-content">
-          <form className="task-form" onSubmit={handleAddOrUpdate} aria-label="task-form">
-          <div className="form-row">
-            <div className="form-col">
-              <label className="field-label">Title</label>
-              <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div className="form-col">
-              <div className="description-label-row">
-                <label className="field-label">Status</label>
-                <button
-                  type="button"
-                  className="btn ai-generate-btn"
-                  onClick={suggestStatus}
-                  disabled={isSuggestingStatus}
-                  title="Suggest status using AI"
-                >
-                  {isSuggestingStatus ? (
-                    <span className="ai-spinner" />
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#fff"/><path d="M19 15l1.09 3.26L23 19l-2.91.74L19 23l-1.09-3.26L15 19l2.91-.74L19 15z" fill="#fff"/></svg>
-                  )}
-                  {isSuggestingStatus ? 'Suggesting…' : 'Suggest with AI'}
-                </button>
-              </div>
-              <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-                {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <div className="description-label-row">
-              <label className="field-label">Description</label>
-              <button
-                type="button"
-                className="btn ai-generate-btn"
-                onClick={generateDescription}
-                disabled={isGenerating}
-                title="Generate description using AI"
-              >
-                {isGenerating ? (
-                  <span className="ai-spinner" />
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#fff"/><path d="M19 15l1.09 3.26L23 19l-2.91.74L19 23l-1.09-3.26L15 19l2.91-.74L19 15z" fill="#fff"/></svg>
-                )}
-                {isGenerating ? 'Generating…' : 'Generate with AI'}
-              </button>
-            </div>
-            <textarea className="input textarea-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          <div className="form-group">
-            <button
-              type="button"
-              className="btn ai-breakdown-btn"
-              onClick={breakdownTask}
-              disabled={isBreakingDown}
-              title="Break this task into actionable subtasks using AI"
-            >
-              {isBreakingDown ? (
-                <span className="ai-spinner" />
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#fff" strokeWidth="2"/><path d="M9 12h6M9 16h4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
-              )}
-              {isBreakingDown ? 'Breaking down…' : 'Break Down Task'}
-            </button>
-          </div>
-
-          {breakdown && (
-            <div className="ai-breakdown-panel">
-              <div className="ai-breakdown-header">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="#059669" strokeWidth="2" strokeLinecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#059669" strokeWidth="2"/><path d="M9 12h6M9 16h4" stroke="#059669" strokeWidth="2" strokeLinecap="round"/></svg>
-                <span>AI Task Breakdown</span>
-                <button className="summary-close-btn" onClick={() => setBreakdown('')} title="Close">✕</button>
-              </div>
-              <div className="ai-breakdown-body">
-                {breakdown.split('\n').map((line, i) => (
-                  line.trim() ? <p key={i} className="breakdown-line">{line}</p> : null
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="form-actions">
-            <button type="submit" className="btn">{editingId ? 'Update Task' : 'Create Task'}</button>
-            <button type="button" className="btn secondary" onClick={resetForm}>Reset</button>
-          </div>
-        </form>
-
-          
-
-          <div className="table-area">
-            <div className="table-toolbar">
-              <button
-                type="button"
-                className="btn ai-import-btn"
-                onClick={() => { setShowImportModal(true); setImportFile(null); setImportResult(null); }}
-                title="Import tasks from a PDF or Word document"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="#fff"/><path d="M4 20h16v-4h-2v2H6v-2H4v4z" fill="#fff"/></svg>
-                Import Document
-              </button>
-              <button
-                type="button"
-                className="btn ai-chat-btn"
-                onClick={() => setShowChat(true)}
-                title="Ask AI about your tasks"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                AI Chat
-              </button>
-              <button
-                type="button"
-                className="btn ai-summarize-btn"
-                onClick={summarizeTasks}
-                disabled={isSummarizing}
-                title="Get an AI executive summary of all tasks"
-              >
-                {isSummarizing ? (
-                  <span className="ai-spinner" />
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 10h16M4 14h10" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#fff" opacity="0.6"/></svg>
-                )}
-                {isSummarizing ? 'Summarizing…' : showSummary ? 'Hide Summary' : 'Summarize Tasks'}
-              </button>
-            </div>
-
-            {showSummary && summary && (
-              <div className="ai-summary-panel">
-                <div className="ai-summary-header">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" fill="#6366f1"/></svg>
-                  <span>AI Executive Summary</span>
-                  <button className="summary-close-btn" onClick={() => setShowSummary(false)} title="Close">✕</button>
-                </div>
-                <div className="ai-summary-body">
-                  {summary.split('\n').map((line, i) => (
-                    line.trim() ? <p key={i} className="summary-line">{line}</p> : null
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              {tasks.length === 0 ? (
-                <div className="empty">No tasks created.</div>
-              ) : (
-                <>
-                  <div className="table-responsive">
-                    <table className={`task-table`} role="table">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th key={header.id} onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined} className={header.column.getCanSort() ? 'sortable-header' : ''}>
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            <span className="sort-icon">{header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' ▲' : ' ▼') : header.column.getCanSort() ? ' ⇅' : ''}</span>
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                    {/* column filter row */}
-                    <tr>
-                      {table.getAllColumns().map((column) => (
-                        <th key={column.id}>
-                          {column.getCanFilter() ? (
-                            <input className="column-search" placeholder={`Search ${column.id}`} value={column.getFilterValue() ?? ''} onChange={(e) => column.setFilterValue(e.target.value)} />
-                          ) : null}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                   
-                  </div>
-
-                  <div className="pagination">
-                <label className="page-size-label">
-                  Show
-                  <select
-                    className="page-size-select"
-                    value={table.getState().pagination.pageSize}
-                    onChange={(e) => {
-                      const s = Number(e.target.value);
-                      table.setPageSize(s);
-                      table.setPageIndex(0);
-                    }}
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
-                  per page
-                </label>
-                <div className="pagination-info">Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} - {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} of {table.getFilteredRowModel().rows.length}</div>
-                <button className="page-btn" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Prev</button>
-                {Array.from({ length: table.getPageCount() }, (_, i) => i + 1).map((num) => (
-                  <button key={num} className={`page-btn ${num - 1 === table.getState().pagination.pageIndex ? 'active' : ''}`} onClick={() => table.setPageIndex(num - 1)}>{num}</button>
-                ))}
-                <button className="page-btn" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</button>
-              </div>
-            </>
-          )}
+          <TaskForm
+            title={title}
+            setTitle={setTitle}
+            description={description}
+            setDescription={setDescription}
+            status={status}
+            setStatus={setStatus}
+            editingId={editingId}
+            isSubmitting={isSubmitting}
+            onReset={handleReset}
+            onSubmit={handleFormSubmit}
+            isGenerating={isGenerating}
+            generateDescription={generateDescription}
+            isSuggestingStatus={isSuggestingStatus}
+            suggestStatus={suggestStatus}
+            isBreakingDown={isBreakingDown}
+            breakdownTask={breakdownTask}
+            breakdown={breakdown}
+            setBreakdown={setBreakdown}
+          />
+          <TaskTable
+            tasks={tasks}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+            isSummarizing={isSummarizing}
+            showSummary={showSummary}
+            setShowSummary={setShowSummary}
+            summary={summary}
+            summarizeTasks={summarizeTasks}
+            onOpenImport={() => { setShowImportModal(true); setImportFile(null); setImportResult(null); }}
+            onOpenChat={() => setShowChat(true)}
+          />
         </div>
       </div>
-    </div>
-    </div>
 
-      {showImportModal && (
-        <div className="chat-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowImportModal(false); } }}>
-          <div className="chat-modal import-modal" role="dialog" aria-label="Import Document">
-            <div className="chat-modal-header import-modal-header">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z" fill="#b45309"/><path d="M4 20h16v-4h-2v2H6v-2H4v4z" fill="#b45309"/></svg>
-              <span>Import Tasks from Document</span>
-              <button className="summary-close-btn" onClick={() => setShowImportModal(false)} title="Close">✕</button>
-            </div>
-            <div className="import-modal-body">
-              <p className="import-hint">Upload a PDF, Word, or Excel document (.pdf, .doc, .docx, .xlsx, .xls). The AI will extract tasks and save them automatically.</p>
-              <label className="import-drop-zone" htmlFor="import-file-input">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="#b45309" strokeWidth="1.5" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 12v6M9 15l3-3 3 3" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <span className="import-drop-label">
-                  {importFile ? importFile.name : 'Click to choose a file'}
-                </span>
-                <span className="import-drop-sub">PDF, DOC, DOCX, XLSX, XLS supported</span>
-                <input
-                  id="import-file-input"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.xlsx,.xls"
-                  className="import-file-input"
-                  onChange={(e) => { setImportFile(e.target.files[0] || null); setImportResult(null); }}
-                  aria-label="Choose document file"
-                />
-              </label>
-
-              {importResult && (
-                <div className="import-result">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11l3 3L22 4" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="#16a34a" strokeWidth="2" strokeLinecap="round"/></svg>
-                  <span>{importResult.message}</span>
-                </div>
-              )}
-            </div>
-            <div className="import-modal-footer">
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setShowImportModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn ai-import-submit-btn"
-                onClick={importDocument}
-                disabled={isImporting || !importFile}
-              >
-                {isImporting ? <><span className="ai-spinner" /> Importing…</> : 'Import'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showChat && (
-        <div className="chat-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowChat(false); }}>
-          <div className="chat-modal" role="dialog" aria-label="AI Task Chat">
-            <div className="chat-modal-header">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span>AI Task Assistant</span>
-              <button className="summary-close-btn" onClick={() => setShowChat(false)} title="Close">✕</button>
-            </div>
-            <div className="chat-messages" aria-live="polite">
-              {chatMessages.length === 0 && (
-                <p className="chat-placeholder">Ask me anything about your tasks — e.g. "What should I work on next?" or "Are there any blockers?"</p>
-              )}
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`chat-message ${msg.role}`}>
-                  <p className="chat-bubble">{msg.text}</p>
-                  {msg.role === 'ai' && msg.tasksAnalyzed != null && (
-                    <span className="chat-meta">{msg.tasksAnalyzed} task{msg.tasksAnalyzed !== 1 ? 's' : ''} analysed</span>
-                  )}
-                </div>
-              ))}
-              {isChatting && (
-                <div className="chat-message ai">
-                  <p className="chat-bubble chat-typing"><span className="ai-spinner" /></p>
-                </div>
-              )}
-            </div>
-            <div className="chat-input-row">
-              <input
-                className="input chat-input"
-                placeholder="Type your question…"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !isChatting) sendChatMessage(); }}
-                disabled={isChatting}
-                aria-label="Chat input"
-              />
-              <button
-                className="btn ai-chat-send-btn"
-                onClick={sendChatMessage}
-                disabled={isChatting || !chatInput.trim()}
-                title="Send"
-              >
-                {isChatting ? <span className="ai-spinner" /> : 'Send'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImportModal
+        show={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        importFile={importFile}
+        setImportFile={setImportFile}
+        importResult={importResult}
+        setImportResult={setImportResult}
+        isImporting={isImporting}
+        importDocument={importDocument}
+      />
+      <AIChatPanel
+        show={showChat}
+        onClose={() => setShowChat(false)}
+        chatMessages={chatMessages}
+        chatInput={chatInput}
+        setChatInput={setChatInput}
+        isChatting={isChatting}
+        sendChatMessage={sendChatMessage}
+      />
     </div>
   );
 };
